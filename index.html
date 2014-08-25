@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Generates service passwords from a master password">
+    <meta name="author" content="Christoph Müller">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Generate your password</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/signin.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="container">
+
+      <form class="form-signin" role="form">
+        <h2 class="form-signin-heading">Generate your password</h2>
+        <div class="input-container">
+            <input type="TEXT" class="form-control" name="fullname" placeholder="Full Name" required autofocus>
+            <input type="password" class="form-control" name="master-password" placeholder="Master Password" required>
+            <input type="TEXT" class="form-control" name="service" placeholder="Service Name" required>
+            <input type="number" class="form-control" name="counter" placeholder="Counter" min="1" required>
+        </div>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Generate</button>
+      </form>
+
+    </div> <!-- /container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.js"></script>
+        <script src="js/forge.min.js"></script>
+        <script src="js/scrypt.js"></script>
+        <script type="text/javascript" charset="utf-8">
+        $("form").submit(function(event) {
+
+            var pname = "com.lyndir.masterpassword"
+            var fullname = $('input[name="fullname"]').val();
+            var masterpassword = $('input[name="master-password"]').val();
+            var service = $('input[name="service"]').val();
+            var counter = $('input[name="counter"]').val();
+
+            var scrypt = scrypt_module_factory(128000000);
+            var key = scrypt.crypto_scrypt(scrypt.encode_utf8("master password"),
+                    scrypt.encode_utf8(pname + masterpassword + fullname.length + fullname),
+                    32768, 8, 2, 64);
+            console.log(key);
+
+            var hmac = forge.hmac.create();
+            hmac.start('sha256', String.fromCharCode.apply(null, key));
+            hmac.update(pname + service.length + service + counter);
+            var buffer = hmac.digest();
+            console.log(buffer.toHex());
+
+            var alphabet_C = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            var alphabet_n = "0123456789";
+            var alphabet_o = "@&%?,=[]_:-+*$#!'^~;()/.";
+
+            var alphabet_x = alphabet_C + alphabet_C.toLowerCase() + alphabet_n + alphabet_o;
+
+            var template = "Cnoxxxxxxxxxxxxxxxxx";
+
+            var alphabet_mapper = {
+                "C" : alphabet_C,
+                "n" : alphabet_n,
+                "o" : alphabet_o,
+                "x" : alphabet_x
+            }
+
+            var password = "";
+
+            for(var i = 0; i < template.length; i++) {
+                var alpha = alphabet_mapper[template[i]];
+                password += alpha[buffer.getByte() % alpha.length];
+            }
+
+            alert(password);
+            event.preventDefault();
+        });
+        </script>
+  </body>
+</html>
