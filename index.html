@@ -40,7 +40,53 @@
 
     </div> <!-- /container -->
 
+    <script id="scrypt-worker" type="javascript/worker">
+        // This script won't be parsed by JS engines because its type is javascript/worker.
+        var calcPassword = function(fullname, masterpassword, service, counter) {
+          importScripts('js/scrypt.js', 'js/forge.min.js');
+          var pname = "com.lyndir.masterpassword"
+          var scrypt = scrypt_module_factory(128000000);
+          var key = scrypt.crypto_scrypt(scrypt.encode_utf8("master password"),
+                  scrypt.encode_utf8(pname + masterpassword + fullname.length + fullname),
+                  32768, 8, 2, 64);
+          console.log(key);
 
+          var hmac = forge.hmac.create();
+          hmac.start('sha256', string.fromcharcode.apply(null, key));
+          hmac.update(pname + service.length + service + counter);
+          var buffer = hmac.digest();
+          console.log(buffer.tohex());
+
+          var alphabet_c = "abcdefghijklmnopqrstuvwxyz"
+          var alphabet_n = "0123456789";
+          var alphabet_o = "@&%?,=[]_:-+*$#!'^~;()/.";
+
+          var alphabet_x = alphabet_c + alphabet_c.tolowercase() + alphabet_n + alphabet_o;
+
+          var template = "cnoxxxxxxxxxxxxxxxxx";
+
+          var alphabet_mapper = {
+              "c" : alphabet_c,
+              "n" : alphabet_n,
+              "o" : alphabet_o,
+              "x" : alphabet_x
+          }
+
+          var password = "";
+
+          for(var i = 0; i < template.length; i++) {
+              var alpha = alphabet_mapper[template[i]];
+              password += alpha[buffer.getbyte() % alpha.length];
+          }
+
+          self.postMessage(password);
+        };
+
+        self.onmessage = function(e) {
+          calcPassword(e.fullname, e.masterpassword, e.service, e.counter);
+        };
+
+    </script>
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
@@ -50,47 +96,26 @@
         <script type="text/javascript" charset="utf-8">
         $("form").submit(function(event) {
 
-            var pname = "com.lyndir.masterpassword"
+
             var fullname = $('input[name="fullname"]').val();
             var masterpassword = $('input[name="master-password"]').val();
             var service = $('input[name="service"]').val();
             var counter = $('input[name="counter"]').val();
 
-            var scrypt = scrypt_module_factory(128000000);
-            var key = scrypt.crypto_scrypt(scrypt.encode_utf8("master password"),
-                    scrypt.encode_utf8(pname + masterpassword + fullname.length + fullname),
-                    32768, 8, 2, 64);
-            console.log(key);
 
-            var hmac = forge.hmac.create();
-            hmac.start('sha256', String.fromCharCode.apply(null, key));
-            hmac.update(pname + service.length + service + counter);
-            var buffer = hmac.digest();
-            console.log(buffer.toHex());
+            var blob = new Blob([document.querySelector('#scrypt-worker').textContent]);
 
-            var alphabet_C = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            var alphabet_n = "0123456789";
-            var alphabet_o = "@&%?,=[]_:-+*$#!'^~;()/.";
-
-            var alphabet_x = alphabet_C + alphabet_C.toLowerCase() + alphabet_n + alphabet_o;
-
-            var template = "Cnoxxxxxxxxxxxxxxxxx";
-
-            var alphabet_mapper = {
-                "C" : alphabet_C,
-                "n" : alphabet_n,
-                "o" : alphabet_o,
-                "x" : alphabet_x
+            // Note: window.webkitURL.createObjectURL() in Chrome 10+.
+            var worker = new Worker(window.URL.createObjectURL(blob));
+            worker.onmessage = function(password) {
+                alert(password);
+                event.preventDefault();
             }
+            worker.postMessage({"fullname" : fullname,
+                                "masterpassword" : masterpassword,
+                                "service" : service,
+                                "counter" : counter}); // Start the worker.
 
-            var password = "";
-
-            for(var i = 0; i < template.length; i++) {
-                var alpha = alphabet_mapper[template[i]];
-                password += alpha[buffer.getByte() % alpha.length];
-            }
-
-            alert(password);
             event.preventDefault();
         });
         </script>
