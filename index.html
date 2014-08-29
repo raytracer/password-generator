@@ -42,26 +42,27 @@
 
     <script id="scrypt-worker" type="javascript/worker">
         // This script won't be parsed by JS engines because its type is javascript/worker.
+        var hexToBytes = function (hex) {
+                for (var bytes = [], c = 0; c < hex.length; c += 2)
+                        bytes.push(parseInt(hex.substr(c, 2), 16));
+                return bytes;
+        }
+
         var calcPassword = function(fullname, masterpassword, service, counter) {
-          importScripts('js/scrypt.js', 'js/forge.min.js');
           var pname = "com.lyndir.masterpassword"
           var scrypt = scrypt_module_factory(128000000);
           var key = scrypt.crypto_scrypt(scrypt.encode_utf8("master password"),
                   scrypt.encode_utf8(pname + masterpassword + fullname.length + fullname),
                   32768, 8, 2, 64);
-          console.log(key);
 
-          var hmac = forge.hmac.create();
-          hmac.start('sha256', string.fromcharcode.apply(null, key));
-          hmac.update(pname + service.length + service + counter);
-          var buffer = hmac.digest();
-          console.log(buffer.tohex());
+          var hash = CryptoJS.HmacSHA256(pname + service.length + service + counter, String.fromCharCode.apply(null, key));
+          var buffer = hexToBytes(hash.toString());
 
           var alphabet_c = "abcdefghijklmnopqrstuvwxyz"
           var alphabet_n = "0123456789";
           var alphabet_o = "@&%?,=[]_:-+*$#!'^~;()/.";
 
-          var alphabet_x = alphabet_c + alphabet_c.tolowercase() + alphabet_n + alphabet_o;
+          var alphabet_x = alphabet_c + alphabet_c.toLowerCase() + alphabet_n + alphabet_o;
 
           var template = "cnoxxxxxxxxxxxxxxxxx";
 
@@ -76,14 +77,17 @@
 
           for(var i = 0; i < template.length; i++) {
               var alpha = alphabet_mapper[template[i]];
-              password += alpha[buffer.getbyte() % alpha.length];
+              password += alpha[buffer[i] % alpha.length];
           }
 
           self.postMessage(password);
         };
 
         self.onmessage = function(e) {
-          calcPassword(e.fullname, e.masterpassword, e.service, e.counter);
+          var data = e.data;
+          importScripts('http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/hmac-sha256.js',
+                        'https://raw.githubusercontent.com/tonyg/js-scrypt/master/browser/scrypt.js');
+          calcPassword(data.fullname, data.masterpassword, data.service, data.counter);
         };
 
     </script>
@@ -91,8 +95,6 @@
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
         <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.js"></script>
-        <script src="js/forge.min.js"></script>
-        <script src="js/scrypt.js"></script>
         <script type="text/javascript" charset="utf-8">
         $("form").submit(function(event) {
 
@@ -107,14 +109,14 @@
 
             // Note: window.webkitURL.createObjectURL() in Chrome 10+.
             var worker = new Worker(window.URL.createObjectURL(blob));
-            worker.onmessage = function(password) {
-                alert(password);
+            worker.onmessage = function(e) {
+                alert(e.data);
                 event.preventDefault();
             }
             worker.postMessage({"fullname" : fullname,
                                 "masterpassword" : masterpassword,
                                 "service" : service,
-                                "counter" : counter}); // Start the worker.
+                                "counter" : counter});
 
             event.preventDefault();
         });

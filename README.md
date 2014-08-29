@@ -7,7 +7,7 @@ Libraries
 ---------
 
 - [js-scrypt](https://github.com/tonyg/js-scrypt) - A javascript implementation of scrypt
-- [forge](https://github.com/digitalbazaar/forge) - A javascript crypto library
+- [crypto-js](https://code.google.com/p/crypto-js/) - A javascript crypto library
 
 License
 -------
