@@ -4,6 +4,22 @@ body {
   background-color: #eee;
 }
 
+#result {
+  max-width: 430px;
+  padding: 15px;
+  margin: 0 auto;
+  display: none;
+}
+
+#loading {
+    display: none;
+}
+
+#final-password {
+    margin-top: 15px;
+    display: none;
+}
+
 .form-signin {
   max-width: 430px;
   padding: 15px;

@@ -15,7 +15,7 @@
 
     <!-- Custom styles for this template -->
     <link href="css/signin.css" rel="stylesheet">
-
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
@@ -35,9 +35,13 @@
             <input type="TEXT" class="form-control" name="service" placeholder="Service Name" required>
             <input type="number" class="form-control" name="counter" placeholder="Counter" min="1" required>
         </div>
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Generate</button>
+        <button class="btn btn-lg btn-primary btn-block" type="submit"><i id="loading" class="fa fa-cog fa-spin"></i> Generate</button>
       </form>
-
+      <div id="result">
+        <button id="show" class="btn btn-lg btn-primary btn-block">Show</button>
+        <button id="clipboard" class="btn btn-lg btn-primary btn-block">Copy to Clipboard</button>
+        <p id="final-password" class="lead text-center"></p>
+      </div>
     </div> <!-- /container -->
 
     <script id="scrypt-worker" type="javascript/worker">
@@ -58,7 +62,7 @@
           var hash = CryptoJS.HmacSHA256(pname + service.length + service + counter, String.fromCharCode.apply(null, key));
           var buffer = hexToBytes(hash.toString());
 
-          var alphabet_c = "abcdefghijklmnopqrstuvwxyz"
+          var alphabet_c = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
           var alphabet_n = "0123456789";
           var alphabet_o = "@&%?,=[]_:-+*$#!'^~;()/.";
 
@@ -95,9 +99,20 @@
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
         <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.js"></script>
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/zeroclipboard/2.1.6/ZeroClipboard.min.js"></script>
         <script type="text/javascript" charset="utf-8">
-        $("form").submit(function(event) {
+        ZeroClipboard.config( { swfPath: "http://cdnjs.cloudflare.com/ajax/libs/zeroclipboard/2.1.6/ZeroClipboard.swf" } );
+        var client = new ZeroClipboard($("#clipboard"));
+        client.on( "copy", function (event) {
+                var clipboard = event.clipboardData;
+                var password = $("#final-password").text();
+                clipboard.setData( "text/plain", password);
+        });
 
+        $("form").submit(function(event) {
+            $("#result").fadeOut();
+            $("#final-password").fadeOut();
+            $("#loading").fadeIn();
 
             var fullname = $('input[name="fullname"]').val();
             var masterpassword = $('input[name="master-password"]').val();
@@ -110,7 +125,9 @@
             // Note: window.webkitURL.createObjectURL() in Chrome 10+.
             var worker = new Worker(window.URL.createObjectURL(blob));
             worker.onmessage = function(e) {
-                alert(e.data);
+                $("#loading").fadeOut();
+                $("#final-password").text(e.data);
+                $("#result").fadeIn();
                 event.preventDefault();
             }
             worker.postMessage({"fullname" : fullname,
@@ -119,6 +136,10 @@
                                 "counter" : counter});
 
             event.preventDefault();
+        });
+
+        $("#show").click(function() {
+            $("#final-password").fadeIn();
         });
         </script>
   </body>
