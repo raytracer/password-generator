@@ -10,6 +10,12 @@ Libraries
 - [crypto-js](https://code.google.com/p/crypto-js/) - A javascript crypto library
 - [zeroclipboard](http://zeroclipboard.org/) - A library that allows to access the clipboard using an invisible swf-file
 
+Screenshots
+-----------
+
+![Image](screen1.png?raw=true)
+![Image](screen2.png?raw=true)
+
 License
 -------
 
